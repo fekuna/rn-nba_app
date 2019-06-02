@@ -1,18 +1,39 @@
-import React, { Component } from 'react'
-import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native'
+import React, { Component } from 'react';
+import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native';
+import { connect } from 'react-redux';
+import { getTokens, setTokens } from '../../components/utils/keys';
+import { autoSignIn } from '../../store/actions/user_actions';
 
-import AuthLogo from './authLogo'
-import AuthForm from './authForm'
+import AuthLogo from './authLogo';
+import AuthForm from './authForm';
 
 class AuthScreen extends Component {
 	state = {
-		loading: false
-	}
+		loading: true
+	};
 
 	goNext = () => {
-	  this.props.navigation.navigate('App')
+		this.props.navigation.navigate('App');
+	};
+
+	componentDidMount() {
+		getTokens((value) => {
+			if (value[0][1] === null) {
+				console.log('no value')
+				this.setState({ loading: false });
+			} else {
+				this.props.onAutoSignIn(value[1][1], () => {
+					if (!this.props.User.auth.token) {
+						this.setState({ loading: false });
+					} else {
+						setTokens(this.props.User.auth, () => {
+							this.goNext();
+						});
+					}
+				});
+			}
+		});
 	}
-	
 
 	render() {
 		if (this.state.loading) {
@@ -20,7 +41,7 @@ class AuthScreen extends Component {
 				<View style={styles.loading}>
 					<ActivityIndicator />
 				</View>
-			)
+			);
 		} else {
 			return (
 				<ScrollView style={styles.container}>
@@ -29,12 +50,24 @@ class AuthScreen extends Component {
 						<AuthForm goNext={this.goNext} />
 					</View>
 				</ScrollView>
-			)
+			);
 		}
 	}
 }
 
-export default AuthScreen
+const mapStateToProps = (state) => {
+	return {
+		User: state.User
+	};
+};
+
+const mapDispatchToProps = (dispatch) => {
+	return {
+		onAutoSignIn: (refToken, cb) => dispatch(autoSignIn(refToken, cb))
+	};
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(AuthScreen);
 
 const styles = StyleSheet.create({
 	container: {
@@ -48,4 +81,4 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center'
 	}
-})
+});

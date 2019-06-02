@@ -9,7 +9,7 @@ import thunk from 'redux-thunk'
 
 import reducers from './src/store/reducers'
 
-const composeEnhancher = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
+const composeEnhancher = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__  || compose
 
 const createStoreWithMiddleware = createStore(reducers, composeEnhancher(applyMiddleware(thunk)))
 

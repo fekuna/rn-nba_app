@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, Platform, Button } from 'react-native';
+import { connect } from 'react-redux';
 
 import Input from '../../components/input/input';
 import ValidationRules from '../../components/utils/validationRules';
+import { signIn, signUp } from '../../store/actions/user_actions';
+import { setTokens } from '../../components/utils/keys';
 
 class AuthForm extends Component {
 	state = {
@@ -67,7 +70,6 @@ class AuthForm extends Component {
 		let rules = formCopy[name].rules;
 		let isValid = ValidationRules(value, rules, formCopy);
 
-		console.log(isValid);
 		formCopy[name].valid = isValid;
 
 		this.setState({
@@ -84,6 +86,55 @@ class AuthForm extends Component {
 			action: type === 'Login' ? 'Register' : 'Login',
 			actionMode: type === 'Login' ? 'I want to Login' : 'I want to Register'
 		});
+	};
+
+	submitUser = () => {
+		let isFormValid = true;
+		let formToSubmit = {};
+		const formCopy = this.state.form;
+
+		for (let key in formCopy) {
+			if (this.state.type === 'Login') {
+				// Login
+				if (key !== 'confirmPassword') {
+					isFormValid = isFormValid && formCopy[key].valid;
+					formToSubmit[key] = formCopy[key].value;
+				}
+			} else {
+				// Register
+				isFormValid = isFormValid && formCopy[key].valid;
+				formToSubmit[key] = formCopy[key].value;
+			}
+		}
+
+		if (isFormValid) {
+			if (this.state.type === 'Login') {
+				this.props.onLoginUser(formToSubmit).then(() => {
+					this.manageAccess();
+				});
+			} else {
+				this.props.onRegisterUser(formToSubmit);
+			}
+		} else {
+			this.setState({
+				hasErrors: true
+			});
+		}
+	};
+
+	manageAccess = () => {
+		if (!this.props.User.auth.uid) {
+			this.setState({
+				hasErrors: true
+			});
+		} else {
+			setTokens(this.props.User.auth, () => {
+				this.setState({
+					hasErrors: false
+				});
+				this.props.goNext();
+			});
+		}
 	};
 
 	render() {
@@ -149,4 +200,17 @@ const styles = StyleSheet.create({
 	}
 });
 
-export default AuthForm;
+const mapStateToProps = (state) => {
+	return {
+		User: state.User
+	};
+};
+
+const mapDispatchToProps = (dispatch) => {
+	return {
+		onRegisterUser: (userData) => dispatch(signUp(userData)),
+		onLoginUser: (userData) => dispatch(signIn(userData))
+	};
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(AuthForm);
